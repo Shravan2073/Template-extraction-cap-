@@ -1,0 +1,4 @@
+proxy.cse.cuhk.edu.hk:5070 open through proxy proxy.cse.cuhk.edu.hk:5070 HTTPS
+proxy.cse.cuhk.edu.hk:5070 close, 0 bytes sent, 0 bytes received, lifetime 00:01
+proxy.cse.cuhk.edu.hk:5070 open through proxy p3p.sogou.com:80 HTTPS
+182.254.114.110:80 open through proxy 182.254.114.110:80 HTTPS
