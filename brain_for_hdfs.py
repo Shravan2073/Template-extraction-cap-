@@ -13,10 +13,10 @@ class BrainLogParser:
         self.branch_threshold = branch_threshold
         # Regex for common variables (IPs, numbers, etc.)
         self.regex_filters = [
+            (r'blk_-?\d+', '<*>'),                             # HDFS block IDs
             (r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '<*>'), # IP Address
             (r'\b[0-9]+\b', '<*>'),                             # Numbers
-            (r'0x[a-fA-F0-9]+', '<*>'),                         # Hex
-            (r'blk_-?\d+', '<*>')                              # HDFS block IDs
+            (r'0x[a-fA-F0-9]+', '<*>')                          # Hex
         ]
 
     def preprocess(self, log_lines):
@@ -26,6 +26,10 @@ class BrainLogParser:
             clean_line = line.strip()
             for regex, replacement in self.regex_filters:
                 clean_line = re.sub(regex, replacement, clean_line)
+
+            # Collapse huge delete lists into one placeholder to avoid overfitted templates.
+            if 'BLOCK* ask' in clean_line and 'to delete' in clean_line:
+                clean_line = re.sub(r'(to delete)\s+.+$', r'\1 <*>', clean_line)
             
             # Split by spaces (can be extended to other delimiters like '=' or ':')
             tokens = clean_line.split()
@@ -67,6 +71,15 @@ class BrainLogParser:
                 for idx, token in enumerate(log['tokens']):
                     if token != '<*>' and freq_dict.get(token, 0) >= threshold:
                         combination.append((idx, token))
+
+                # Keep stable anchors so templates don't collapse into overly generic patterns.
+                for anchor_idx in (3, 4, 5):
+                    if anchor_idx < len(log['tokens']):
+                        anchor = log['tokens'][anchor_idx]
+                        if anchor != '<*>' and (anchor_idx, anchor) not in combination:
+                            combination.append((anchor_idx, anchor))
+
+                combination.sort(key=lambda x: x[0])
                 
                 combination_key = (length, tuple(combination))
                 initial_groups[combination_key].append(log)
